@@ -11,16 +11,20 @@ from scipy import ndimage
 import random
 from random import shuffle
 import tensorflow as tf
+import random
+import hashlib
+    #import modules
 
 random.seed(42)
+    #define seed to ensure that randomness is the same throughout every run
 
 def setup(files, labels):
+    #takes filepaths and labels
     filenames_and_labels = {}
         #empty dictionary containing filenames as keys and labels as values
 
     problem_line = 0
         #variable for counting how many lines (ergo how many files and labels) were problematic and will be unused
-    problem_file = 0
 
     for labelfile in labels:
         #iterate through each labelfile in the collection of label files
@@ -58,30 +62,33 @@ def setup(files, labels):
                     #add filename and label as key-value pair to dictionary
 
     percent_problematic = float(problem_line)/len(files)*100
-        #calculate percent problematic
     print("Percent of lines skipped because of problems:", percent_problematic)
-        #print percent problematic
+        #calculate and print percent problematic
 
     percent_problem_files = float(problem_file)/len(files)*100
     print("Percent of files not found:", percent_problem_files)
+        #calculate and print percent of files not found
 
-    ##random.shuffle(filenames_and_labels)
+    list_of_keys = list(filenames_and_labels.keys())
+        #create list of keys from dictionary
+    list_of_keys.sort()
+        #sort list
+    random.shuffle(list_of_keys)
+        #shuffle list
 
     tr_amount = int(0.7 * len(filenames_and_labels))
     va_amount = int(0.6 * (len(filenames_and_labels)-tr_amount))
     te_amount = int(0.4 * (len(filenames_and_labels)-tr_amount))
         #define number of elements in each dataset
 
-    ordered_filenames_and_labels_keys = sorted(filenames_and_labels.keys())
-    train_dataset = list(ordered_filenames_and_labels_keys)[:tr_amount]
-    train_dataset.sort()
-    valid_dataset = list(ordered_filenames_and_labels_keys)[tr_amount:tr_amount+va_amount]
-    valid_dataset.sort()
-    test_dataset  = list(ordered_filenames_and_labels_keys)[tr_amount+va_amount:]
-    test_dataset.sort()
+    train_dataset = list_of_keys[:tr_amount]
+    valid_dataset = list_of_keys[tr_amount:tr_amount+va_amount]
+    test_dataset  = list_of_keys[tr_amount+va_amount:]
         #create datasets (filepaths), sort them in set order
 
     return filenames_and_labels, train_dataset, valid_dataset, test_dataset
+        #return dictionary and datasets
+
 
 image_size = 28
 num_labels = 7
@@ -103,6 +110,17 @@ def square(image, image_size):
         image = image
     image = resize(image, (image_size, image_size))
     return image
+
+"""
+def distort(image):
+    newy = image.shape[0] - random.randint(1, 5)
+    print(newy)
+    newx = image.shape[1] - random.randint(1, 5)
+    print(newx)
+    image = image[:newx,:newy]
+    print(image.shape)
+    return image
+"""
 
 one_hot_dict = {"ANGER": [1, 0, 0, 0, 0, 0, 0], "HAPPINESS": [0, 1, 0, 0, 0, 0, 0], "SADNESS": [0, 0, 1, 0, 0, 0, 0], "SURPRISE": [0, 0, 0, 1, 0, 0, 0], "FEAR": [0, 0, 0, 0, 1, 0, 0], "DISGUST": [0, 0, 0, 0, 0, 1, 0], "NEUTRAL": [0, 0, 0, 0, 0, 0, 1]}
         #create dictionary for assigning one hot encoding to labels
@@ -131,6 +149,8 @@ def create_batch(dataset, position, image_size, filenames_and_labels):
         batch_label_array[i,:] = one_hot_label
                 #fill each row of label array with a one hot encoded array
     batch_image_array -= 0.5
+    #print(hashlib.sha1(batch_image_array.tostring()).hexdigest())
+    #print(hashlib.sha1(batch_label_array.tostring()).hexdigest())
     return batch_image_array, batch_label_array
 
 def network(tf_train_dataset, tf_train_labels):
