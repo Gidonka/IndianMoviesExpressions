@@ -25,6 +25,8 @@ def setup(files, labels):
 
     problem_line = 0
         #variable for counting how many lines (ergo how many files and labels) were problematic and will be unused
+    problem_file = 0
+        #variable for countine how many files were not found
 
     for labelfile in labels:
         #iterate through each labelfile in the collection of label files
@@ -90,7 +92,8 @@ def setup(files, labels):
         #return dictionary and datasets
 
 
-image_size = 28
+
+image_size = 32
 num_labels = 7
 batch_size = 128
     #define some variables
@@ -111,21 +114,35 @@ def square(image, image_size):
     image = resize(image, (image_size, image_size))
     return image
 
-"""
-def distort(image):
-    newy = image.shape[0] - random.randint(1, 5)
-    print(newy)
-    newx = image.shape[1] - random.randint(1, 5)
-    print(newx)
-    image = image[:newx,:newy]
-    print(image.shape)
+def distort(image, image_size):
+    if image.shape[1] > image.shape[0]:
+        excess = (image.shape[1] - image.shape[0])/2
+        excess = int(round(excess))
+        image = image[:,(0 + excess):(image.shape[1] - excess)]
+    elif image.shape[1] < image.shape[0]:
+        excess = (image.shape[0] - image.shape[1])/2
+        excess = int(round(excess))
+        image = image[(0 + excess):(image.shape[0] -excess),:]
+    else:
+        excess = 0
+        image = image
+    image = resize(image, (image_size+5, image_size+5))
+    xdim = random.randint(1, 5)
+    ydim = random.randint(1, 5)
+    image = image[(xdim):(image_size+xdim),(ydim):(image_size+ydim)]
+    to_flip = random.randint(0, 1)
+    if to_flip == 0:
+        image = image
+    elif to_flip == 1:
+        image = np.fliplr(image)
     return image
-"""
 
 one_hot_dict = {"ANGER": [1, 0, 0, 0, 0, 0, 0], "HAPPINESS": [0, 1, 0, 0, 0, 0, 0], "SADNESS": [0, 0, 1, 0, 0, 0, 0], "SURPRISE": [0, 0, 0, 1, 0, 0, 0], "FEAR": [0, 0, 0, 0, 1, 0, 0], "DISGUST": [0, 0, 0, 0, 0, 1, 0], "NEUTRAL": [0, 0, 0, 0, 0, 0, 1]}
         #create dictionary for assigning one hot encoding to labels
 
-def create_batch(dataset, position, image_size, filenames_and_labels):
+
+
+def create_batch(dataset, position, image_size, filenames_and_labels, to_distort):
     #define function for batch creation
     batch_of_filepaths = dataset[position:(position+batch_size)]
             #define breadth of batch for train or valid dataset
@@ -137,8 +154,14 @@ def create_batch(dataset, position, image_size, filenames_and_labels):
         #create loop to enumerate through the batch of filepaths
         face = io.imread(image)
                 #read each image
-        final_face = square(face, image_size)
-                #call sqaure function on image
+        if to_distort:
+            #if image should be distorted (training)
+            final_face = distort(face, image_size)
+                #vall distort function (which distorts and resizes) on image
+        else:
+            #if image should not be distorted (validation)
+            final_face = square(face, image_size)
+                #call square function on image
         batch_image_array[i,:] = final_face
                 #fill each row of image array with an image array
             
@@ -199,12 +222,12 @@ def network(tf_train_dataset, tf_train_labels):
     #FULLY CONNECTED LAYER
 
     #create weight tensor ([dimension, dimension, number of inputs, number of outputs])
-    W_fc1 = weight_variable([7 * 7 * 64, 1024])
+    W_fc1 = weight_variable([int(image_size/4) * int(image_size/4) * 64, 1024])
     #create bias tensor ([number of outputs])
     b_fc1 = bias_variable([1024])
 
     #reshape tensor from pooling layer
-    h_pool2_flat = tf.reshape(h_pool2, [-1, 7*7*64])
+    h_pool2_flat = tf.reshape(h_pool2, [-1, int(image_size/4)*int(image_size/4)*64])
     #apply ReLU, multiply by weight, add bias
     h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
@@ -219,14 +242,16 @@ def network(tf_train_dataset, tf_train_labels):
     b_fc2 = bias_variable([7])
     y_conv= tf.matmul(h_fc1_drop, W_fc2) + b_fc2
 
-    #train and evaluate: define cross entropy, minimize cross entropy, define ADAM optimizer as preferred method to do so
-    #cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y_conv), reduction_indices=[1]))
+
     cross_entropy_array = tf.nn.softmax_cross_entropy_with_logits(y_conv, tf_train_labels)
     cross_entropy = tf.reduce_mean(cross_entropy_array)
     correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(tf_train_labels,1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     tf.scalar_summary('accuracy', accuracy)
     tf.scalar_summary('loss', cross_entropy)
-        #initialize SummaryWriter
-
+    
     return accuracy, cross_entropy, y_conv, keep_prob
+
+
+####TODO:
+#add image flip for 50% of images

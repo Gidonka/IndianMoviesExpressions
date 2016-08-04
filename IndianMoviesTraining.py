@@ -27,7 +27,7 @@ labels = glob.glob("/Users/Gidonka/Documents/Programming/NYU/MachineLearning/Ind
 filenames_and_labels, train_dataset, valid_dataset, test_dataset = SharedFunctions.setup(files, labels)
     #get entire dataset as well as individual datasets from setup function
 
-image_size = 28
+image_size = 32
 num_labels = 7
 batch_size = 128
     #define some variables
@@ -36,8 +36,6 @@ tf_train_dataset = tf.placeholder(tf.float32, shape=(batch_size, image_size, ima
     #create placeholder for dataset
 tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
     #create placeholder for labels
-
-
 
 sess = tf.InteractiveSession()
     #launch session
@@ -63,13 +61,13 @@ merged_summaries = tf.merge_all_summaries()
 #train network: repeat number of times, evaluate every number of steps, control dropout rate
 
     #define set position at dataset (to be used for creating valid batches) as 0
-for i in range(2001):
+for i in range(20001):
     #create loop to iterate for number of steps wanted
     position = random.randint(0, len(train_dataset)-batch_size)
         #define new random position for taking batch (for use on train data not valid)
     dataset = train_dataset
         #define train dataset as dataset to be used
-    batch_data, batch_labels = SharedFunctions.create_batch(dataset, position, image_size, filenames_and_labels)
+    batch_data, batch_labels = SharedFunctions.create_batch(dataset, position, image_size, filenames_and_labels, True)
         #get batch data and batch labels from create batch function
     sess.run(train_step, feed_dict={tf_train_dataset: batch_data, tf_train_labels: batch_labels, keep_prob: 0.5})
         #run session with defined settings, use feed dictionary created from batch data and batch labels, define probability that a neuron will be kept as 0.5

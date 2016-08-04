@@ -22,7 +22,7 @@ labels = glob.glob("/Users/Gidonka/Documents/Programming/NYU/MachineLearning/Ind
 filenames_and_labels, train_dataset, valid_dataset, test_dataset = SharedFunctions.setup(files, labels)
     #get entire dataset as well as individual datasets from setup function
 
-image_size = 28
+image_size = 32
 num_labels = 7
 batch_size = 128
     #define some variables
@@ -41,8 +41,8 @@ train_writer = tf.train.SummaryWriter('./summary', sess.graph)
 accuracy, cross_entropy, y_conv, keep_prob = SharedFunctions.network(tf_valid_dataset, tf_valid_labels)
     #call network function, return variable placeholders
 
-save_path = tf.train.latest_checkpoint('./checkpoints')
-#save_path = "./checkpoints/my-model-2000"
+#save_path = tf.train.latest_checkpoint('./checkpoints')
+save_path = "./checkpoints/my-model-20000"
     #restore previous session- either last session or specified session
 
 saver = tf.train.Saver()
@@ -64,7 +64,7 @@ for i in range(int(len(valid_dataset)/batch_size)):
         #define dataset to be used as validation dataset
     position += batch_size
         #increase position in dataset by batch size
-    batch_data, batch_labels = SharedFunctions.create_batch(dataset, position, image_size, filenames_and_labels)
+    batch_data, batch_labels = SharedFunctions.create_batch(dataset, position, image_size, filenames_and_labels, False)
         #call create batch function, return batch data and labels
     print("step %d"%(i))
         #print step number
@@ -76,6 +76,9 @@ for i in range(int(len(valid_dataset)/batch_size)):
         #add summary to graph
     correct_samples += acc*len(batch_data)
         #add to number of correct samples
+split = save_path.split("-")
+    #split save path string to get checpoint number
+print("checkpoint number:", split[2])
 print("validation accuracy:", correct_samples/(int(len(valid_dataset))))
     #calculate percentage of correct samples
     
